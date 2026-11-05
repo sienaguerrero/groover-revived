@@ -4,7 +4,7 @@ generate recommendations. This file
 communicates and controls other programs in
 the groover application.
 """
-from flask import render_template, flash, redirect
+from flask import render_template, flash, redirect, url_for
 from application import app
 from application.forms import LoginForm
 from application.recommendations import Recommendation
@@ -26,7 +26,7 @@ def lookup():
         artist=artist.replace('#','')
         title = str(form.title.data)
         title=title.replace('#','')
-        return redirect('/recommendations/' + artist + '/' +  title)
+        return redirect(url_for('recommendations', artist=artist, title=title))
     if (form.artist.data and not form.title.data) or (not form.artist.data and form.title.data):
         flash('Whoops! Please enter both the song name and artist.', category='error')
         return render_template('whoops.html', title='Input error')
