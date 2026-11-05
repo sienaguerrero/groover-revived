@@ -13,6 +13,7 @@ import requests
 import spotipy
 from gensim.models.doc2vec import Doc2Vec
 from nltk.tokenize import word_tokenize
+from spotipy.exceptions import SpotifyBaseException
 from spotipy.oauth2 import SpotifyClientCredentials
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
@@ -90,18 +91,20 @@ class Recommendation:
         #Get album art and a preview url from Spotify
         if not (os.getenv("SPOTIFY_CLIENT_ID") and os.getenv("SPOTIFY_CLIENT_SECRET")):
             return True
-        results = spotify_client().search(q='track:' + self.get_song_title() +
-                                          ' artist:' + self.get_artist(), type='track')
+        try:
+            results = spotify_client().search(q='track:' + self.get_song_title() +
+                                              ' artist:' + self.get_artist(), type='track')
+        except (SpotifyBaseException, requests.RequestException) as error:
+            print('Spotify search failed:', error)
+            return True
         items = results['tracks']['items']
-        if not items:
-            print('Track not found.')
-            return False
-        track = items[0]
-        images = track["album"]["images"]
-        if images:
-            self.album_image_url = images[min(1, len(images) - 1)]["url"]
-        self.preview_url = track["preview_url"]
-        self.spotify_url = track['external_urls']['spotify']
+        if items:
+            track = items[0]
+            images = track["album"]["images"]
+            if images:
+                self.album_image_url = images[min(1, len(images) - 1)]["url"]
+            self.preview_url = track["preview_url"]
+            self.spotify_url = track['external_urls']['spotify']
         return True
 
 

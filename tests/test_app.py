@@ -2,6 +2,8 @@ import os
 import unittest
 from unittest import mock
 
+from spotipy.exceptions import SpotifyException
+
 os.environ.setdefault("MUSIX_API_KEY", "test-key")
 os.environ.setdefault("SPOTIFY_CLIENT_ID", "test-id")
 os.environ.setdefault("SPOTIFY_CLIENT_SECRET", "test-secret")
@@ -91,10 +93,22 @@ class FindTrackInfoTest(unittest.TestCase):
         self.assertEqual(rec.get_lyrics(), LYRICS)
         self.assertIsNone(rec.get_album_image_url())
 
-    def test_no_spotify_match_is_not_found(self):
+    def test_no_spotify_match_keeps_the_song_without_art(self):
         with mock.patch.object(recommendations, "musixmatch", side_effect=musixmatch_found), \
                 spotify_returning({"tracks": {"items": []}}):
-            self.assertFalse(recommendations.Recommendation("a", "b").find_track_info())
+            rec = recommendations.Recommendation("a", "b")
+            self.assertTrue(rec.find_track_info())
+        self.assertIsNone(rec.get_album_image_url())
+
+    def test_spotify_error_keeps_the_song_without_art(self):
+        client = mock.Mock()
+        client.search.side_effect = SpotifyException(403, -1, "Active premium subscription required for the owner of the app.")
+        with mock.patch.object(recommendations, "musixmatch", side_effect=musixmatch_found), \
+                mock.patch.object(recommendations, "spotify_client", return_value=client):
+            rec = recommendations.Recommendation("a", "b")
+            self.assertTrue(rec.find_track_info())
+        self.assertEqual(rec.get_lyrics(), LYRICS)
+        self.assertIsNone(rec.get_album_image_url())
 
     def test_sends_search_terms_as_encoded_query_parameters(self):
         response = mock.Mock()
