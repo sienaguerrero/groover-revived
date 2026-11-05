@@ -34,6 +34,10 @@ def convert_model(src, dst):
         model = Unpickler(f, encoding="latin1").load()
 
     state = model.__dict__
+    # gensim 3 stores "always keep" as 2**32, which gensim 4's uint32 cast wraps to 0, dropping every uncommon word.
+    for word in state["wv"].__dict__["vocab"].values():
+        word.sample_int = min(word.sample_int, 2**32 - 1)
+
     dv = state.pop("docvecs")
     state["dv"] = dv
     state["__recursive_saveloads"] = ["dv" if a == "docvecs" else a for a in state["__recursive_saveloads"]]
