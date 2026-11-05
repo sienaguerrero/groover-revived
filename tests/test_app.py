@@ -173,6 +173,15 @@ class RoutesTest(unittest.TestCase):
         self.assertEqual(page.status_code, 200)
         self.assertEqual(page.data.count(b'<div class="recs">'), 20)
 
+    def test_page_without_spotify_leaves_out_the_album_art(self):
+        without_spotify = {k: v for k, v in os.environ.items() if not k.startswith("SPOTIFY_")}
+        with mock.patch.dict(os.environ, without_spotify, clear=True), \
+                mock.patch.object(recommendations, "musixmatch", side_effect=musixmatch_found):
+            page = self.client.get("/recommendations/Test Artist/Test Song")
+        self.assertEqual(page.data.count(b'<div class="recs">'), 20)
+        self.assertNotIn(b"req-album", page.data)
+        self.assertNotIn(b'src="None"', page.data)
+
     def test_default_page_offers_the_retrain(self):
         with mock.patch.object(recommendations, "musixmatch", side_effect=musixmatch_found), \
                 spotify_returning(SPOTIFY_RESULT):

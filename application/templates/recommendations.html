@@ -39,9 +39,11 @@
       <div class="container request">
         <p>Based on the<br>lyrical content of</p>
 
+        {% if rec.get_album_image_url() %}
         <div class="container req-album">
           <img src="{{ rec.get_album_image_url() }}" />
         </div>
+        {% endif %}
 
         <div class="container col">
           <p><b>{{ rec.get_song_title() }}</b><br>by {{ rec.get_artist() }}</p>
