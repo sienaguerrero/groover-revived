@@ -5,7 +5,7 @@ After=network.target
 [Service]
 User=deploy
 WorkingDirectory=/srv/groover/app
-EnvironmentFile=/etc/groover/groover.env
+EnvironmentFile=-/etc/groover/groover.env
 Environment=NLTK_DATA=/srv/groover/nltk_data
 ExecStart=/srv/groover/venv/bin/gunicorn --bind 127.0.0.1:9295 --workers 1 --threads 4 --timeout 60 groover:app
 Restart=on-failure
