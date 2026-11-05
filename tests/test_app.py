@@ -120,6 +120,15 @@ class RoutesTest(unittest.TestCase):
     def setUp(self):
         app.config["WTF_CSRF_ENABLED"] = False
         self.client = app.test_client()
+        recommendations.lookup_track.cache_clear()
+
+    def test_second_view_of_a_song_spends_no_api_calls(self):
+        with mock.patch.object(recommendations, "musixmatch", side_effect=musixmatch_found) as api, \
+                spotify_returning(SPOTIFY_RESULT):
+            self.client.get("/recommendations/Test Artist/Test Song")
+            page = self.client.get("/recommendations/Test Artist/Test Song")
+        self.assertEqual(page.status_code, 200)
+        self.assertEqual(api.call_count, 2)
 
     def test_lookup_page_renders(self):
         page = self.client.get("/")

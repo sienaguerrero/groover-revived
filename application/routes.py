@@ -7,7 +7,7 @@ the groover application.
 from flask import render_template, flash, redirect, url_for
 from application import app
 from application.forms import LoginForm
-from application.recommendations import Recommendation
+from application.recommendations import find_track
 
 @app.route('/', methods=['GET', 'POST'])
 def lookup():
@@ -55,8 +55,8 @@ def recommendations(artist, title):
     the user to the recommendation page or will ask for more input
     if search is unsuccessful.
     """
-    rec = Recommendation(artist, title)
-    if rec.find_track_info():
+    rec = find_track(artist, title)
+    if rec:
         rec.load_recommendations()
         return render_template('recommendations.html', title='Your Recommendations', rec=rec)
     flash('Whoops, we did not find the track "{}" by {}!'.format(\
