@@ -69,7 +69,7 @@ venv/bin/python -m unittest discover tests
 
 The 2019 model was saved by gensim 3, and gensim 4 cannot load it directly. `scripts/convert_2019_model.py` rewrites it in gensim 4's format without retraining, so the word and song vectors are the 2019 ones. The model has 20 dimensions, a 97,547-word vocabulary, and a 5-word context window.
 
-It rarely matches a song back to itself. In a check of 200 catalog songs run through the app's own inference, none ranked itself first, and the median song ranked itself about 13,000th of 57,581. Retraining on the same lyrics with a standard learning-rate schedule brings 191 of the 200 back first, so the weakness comes from the 2019 training run rather than the lyrics.
+gensim 3 stores a word's "always keep" downsampling threshold as `2**32`, and gensim 4's upgrade code casts it to a 32-bit integer, where it wraps to 0. Left alone, that makes search drop 97,478 of the 97,547 words every time. The script caps the threshold at `2**32 - 1` first. With that fix, 152 of 200 sampled catalog songs come back as their own top match when searched with their full lyrics, and 190 land in their own top 20.
 
 Each song in the catalog keeps the album art, preview, and Spotify link that Spotify returned in 2019.
 
