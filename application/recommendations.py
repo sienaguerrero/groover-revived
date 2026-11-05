@@ -83,16 +83,17 @@ class Recommendation:
         #Get album art and a preview url from Spotify
         results = spotify_client().search(q='track:' + self.get_song_title() +
                                           ' artist:' + self.get_artist(), type='track')
-        try:
-            track = results['tracks']['items'][0]
-            self.album_image_url = track["album"]["images"][1]["url"]
-            self.preview_url = track["preview_url"]
-            self.spotify_url = track['external_urls']['spotify']
-
-            return True
-        except:
+        items = results['tracks']['items']
+        if not items:
             print('Track not found.')
             return False
+        track = items[0]
+        images = track["album"]["images"]
+        if images:
+            self.album_image_url = images[min(1, len(images) - 1)]["url"]
+        self.preview_url = track["preview_url"]
+        self.spotify_url = track['external_urls']['spotify']
+        return True
 
 
     # Determine song recommendations using model
