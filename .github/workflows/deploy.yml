@@ -1,0 +1,51 @@
+name: deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version-file: .python-version
+          cache: pip
+      - run: pip install -r requirements.txt
+      - run: python -m nltk.downloader -q punkt_tab
+      - run: python -m unittest discover tests
+
+  deploy:
+    needs: test
+    if: vars.DEPLOY_HOST != ''
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Copy the app to the droplet and restart it
+        env:
+          DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+          DEPLOY_KNOWN_HOSTS: ${{ vars.DEPLOY_KNOWN_HOSTS }}
+          DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/deploy
+          chmod 600 ~/.ssh/deploy
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          ssh="ssh -i $HOME/.ssh/deploy"
+          rsync -az --delete --relative -e "$ssh" application data groover.py requirements.txt "deploy@$DEPLOY_HOST:/srv/groover/app/"
+          $ssh "deploy@$DEPLOY_HOST" 'cd /srv/groover/app && /srv/groover/venv/bin/pip install --quiet -r requirements.txt && /srv/groover/venv/bin/python -m nltk.downloader -q -d /srv/groover/nltk_data punkt_tab && sudo systemctl restart groover'
+      - name: Check that the lookup page answers
+        run: |
+          status=$(curl -s -o /dev/null -w '%{http_code}' --fail --retry 10 --retry-delay 3 --retry-all-errors https://groover.siena.codes/)
+          test "$status" = 200
