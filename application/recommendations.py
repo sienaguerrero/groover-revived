@@ -19,9 +19,11 @@ DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 MUSIXMATCH_API = "https://api.musixmatch.com/ws/1.1/"
 RECOMMENDATION_COUNT = 20
 DEFAULT_MODEL = "2019"
+RETRAINED_MODEL = "2026"
 
 MODELS = {
-    "2019": Doc2Vec.load(str(DATA_DIR / "d2v.model")),
+    DEFAULT_MODEL: Doc2Vec.load(str(DATA_DIR / "d2v.model")),
+    RETRAINED_MODEL: Doc2Vec.load(str(DATA_DIR / "d2v-retrain.model")),
 }
 with open(DATA_DIR / "catalog.json") as catalog_file:
     CATALOG = json.load(catalog_file)
