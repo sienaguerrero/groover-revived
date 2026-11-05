@@ -16,6 +16,7 @@ from spotipy.oauth2 import SpotifyClientCredentials
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 MUSIXMATCH_API = "https://api.musixmatch.com/ws/1.1/"
+RECOMMENDATION_COUNT = 20
 
 MODEL = Doc2Vec.load(str(DATA_DIR / "d2v.model"))
 with open(DATA_DIR / "catalog.json") as catalog_file:
@@ -111,7 +112,8 @@ class Recommendation:
         test_data = word_tokenize(lyrics)
         vector_1 = MODEL.infer_vector(test_data, alpha=0.025, min_alpha=0.001, epochs=55)
 
-        list_of_tuples = MODEL.dv.most_similar(positive=[vector_1], topn=20)
+        list_of_tuples = MODEL.dv.most_similar(positive=[vector_1],
+                                               topn=RECOMMENDATION_COUNT + 1)
         recommendations = []
 
         #Store generated song recommendations from model
@@ -121,7 +123,7 @@ class Recommendation:
             if song['name'] != self.get_song_title():
                 recommendations.append(song)
 
-        self.recommendations = recommendations
+        self.recommendations = recommendations[:RECOMMENDATION_COUNT]
         return True
 
 
