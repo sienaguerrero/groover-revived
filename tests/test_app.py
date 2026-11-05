@@ -3,6 +3,8 @@ import unittest
 from unittest import mock
 
 os.environ.setdefault("MUSIX_API_KEY", "test-key")
+os.environ.setdefault("SPOTIFY_CLIENT_ID", "test-id")
+os.environ.setdefault("SPOTIFY_CLIENT_SECRET", "test-secret")
 
 from application import app
 from application import recommendations
@@ -78,6 +80,16 @@ class FindTrackInfoTest(unittest.TestCase):
         self.assertEqual(rec.get_song_title(), "Test Song")
         self.assertEqual(rec.get_album_image_url(), "https://i.scdn.co/image/medium")
         self.assertEqual(rec.get_spotify_url(), "https://open.spotify.com/track/abc")
+
+    def test_works_without_spotify_keys(self):
+        without_spotify = {k: v for k, v in os.environ.items() if not k.startswith("SPOTIFY_")}
+        with mock.patch.dict(os.environ, without_spotify, clear=True), \
+                mock.patch.object(recommendations, "musixmatch", side_effect=musixmatch_found), \
+                mock.patch.object(recommendations, "spotify_client", side_effect=AssertionError("called")):
+            rec = recommendations.Recommendation("test artist", "test song")
+            self.assertTrue(rec.find_track_info())
+        self.assertEqual(rec.get_lyrics(), LYRICS)
+        self.assertIsNone(rec.get_album_image_url())
 
     def test_no_spotify_match_is_not_found(self):
         with mock.patch.object(recommendations, "musixmatch", side_effect=musixmatch_found), \

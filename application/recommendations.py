@@ -63,7 +63,7 @@ class Recommendation:
     def find_track_info(self):
         """
         matches the song on Musixmatch, then loads its lyrics,
-        then finds its album art and link on Spotify.
+        then finds its album art and link on Spotify if it's set up.
         """
         matched = musixmatch("matcher.track.get", q_track=self.get_song_title(),
                              q_artist=self.get_artist())
@@ -88,6 +88,8 @@ class Recommendation:
             return False
 
         #Get album art and a preview url from Spotify
+        if not (os.getenv("SPOTIFY_CLIENT_ID") and os.getenv("SPOTIFY_CLIENT_SECRET")):
+            return True
         results = spotify_client().search(q='track:' + self.get_song_title() +
                                           ' artist:' + self.get_artist(), type='track')
         items = results['tracks']['items']
