@@ -130,7 +130,7 @@ class Recommendation:
         vector_1 = model.infer_vector(test_data, alpha=0.025, min_alpha=0.001, epochs=55)
 
         list_of_tuples = model.dv.most_similar(positive=[vector_1],
-                                               topn=RECOMMENDATION_COUNT + 1)
+                                               topn=RECOMMENDATION_COUNT * 2)
         recommendations = []
 
         #Store generated song recommendations from model

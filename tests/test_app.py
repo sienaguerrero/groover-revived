@@ -54,6 +54,21 @@ class LoadRecommendationsTest(unittest.TestCase):
         self.assertEqual(len(names), 20)
         self.assertNotIn(title, names)
 
+    def test_still_returns_twenty_when_several_songs_share_the_title(self):
+        title = "Silent Night"
+        same = [str(i) for i, song in enumerate(recommendations.CATALOG) if song["name"] == title][:3]
+        others = [str(i) for i, song in enumerate(recommendations.CATALOG[:200]) if song["name"] != title]
+        ranked = [(key, 0.9) for key in same + others]
+        rec = recommendations.Recommendation("Someone", title)
+        rec.lyrics = LYRICS
+        with mock.patch.object(recommendations.MODELS["2019"].dv, "most_similar",
+                               side_effect=lambda positive, topn: ranked[:topn]):
+            rec.load_recommendations()
+        names = [song["name"] for song in rec.get_recommendations()]
+        self.assertEqual(len(same), 3)
+        self.assertEqual(len(names), 20)
+        self.assertNotIn(title, names)
+
     def test_models_drop_no_word_every_time(self):
         for name, model in recommendations.MODELS.items():
             with self.subTest(model=name):
