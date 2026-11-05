@@ -44,7 +44,7 @@ Make the key file, readable only by root. systemd reads it before starting the a
 install -d -m 700 /etc/groover && install -m 600 /dev/null /etc/groover/groover.env
 ```
 
-Open it in an editor, so the keys stay out of shell history, and add `MUSIX_API_KEY=`, `SPOTIFY_CLIENT_ID=`, and `SPOTIFY_CLIENT_SECRET=` lines with their values:
+Open it in an editor, so the keys stay out of shell history, and add a `MUSIX_API_KEY=` line with its value. `SPOTIFY_CLIENT_ID=` and `SPOTIFY_CLIENT_SECRET=` lines are optional and add the searched song's album art:
 
 ```bash
 nano /etc/groover/groover.env

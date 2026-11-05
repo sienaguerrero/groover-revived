@@ -31,7 +31,7 @@ venv/bin/pip install -r requirements.txt
 venv/bin/python -m nltk.downloader punkt_tab
 ```
 
-Create a `.env` file in the repo root with these three lines, each followed by its value:
+Create a `.env` file in the repo root with these lines, each followed by its value. The two Spotify lines are optional.
 
 ```
 MUSIX_API_KEY=
@@ -48,7 +48,7 @@ Then open http://127.0.0.1:5000.
 ## API keys
 
 - **Musixmatch:** a free developer key from https://developer.musixmatch.com. The free plan returns roughly the first 30% of each song's lyrics, which is what the 2019 app used too.
-- **Spotify:** the client ID and secret of an app made at https://developer.spotify.com/dashboard. Since February 2026, Development Mode apps only work while the app owner has Spotify Premium.
+- **Spotify, optional:** the client ID and secret of an app made at https://developer.spotify.com/dashboard. Since February 2026, Development Mode apps only work while the app owner has Spotify Premium. Spotify only supplies the searched song's album art. Without it, or when it fails, the page shows the 20 recommendations without that one image, since their art comes from the catalog.
 
 ## Tests
 
@@ -62,7 +62,8 @@ venv/bin/python -m unittest discover tests
 - The model and catalog load once at startup instead of on every request.
 - A search always returns 20 songs. The 2019 code asked for 20 and then dropped the searched song, so a song already in the catalog got 19.
 - A slash in a name, as in AC/DC, becomes a space instead of breaking the page's URL.
-- Missing lyrics or no Spotify match shows the "Whoops" page instead of an error.
+- Missing lyrics shows the "Whoops" page instead of an error.
+- Spotify is optional. A Spotify error or a song Spotify can't find no longer blocks the recommendations.
 - Musixmatch calls use HTTPS and encode the search terms.
 - `robots.txt` keeps crawlers off recommendation pages, since each one spends API quota.
 - The favicon is an inline emoji, because the 2019 image link no longer loads.
