@@ -147,6 +147,39 @@ class RoutesTest(unittest.TestCase):
         self.assertEqual(page.status_code, 200)
         self.assertEqual(page.data.count(b'<div class="recs">'), 20)
 
+    def test_default_page_offers_the_retrain(self):
+        with mock.patch.object(recommendations, "musixmatch", side_effect=musixmatch_found), \
+                spotify_returning(SPOTIFY_RESULT):
+            page = self.client.get("/recommendations/Test Artist/Test Song")
+        self.assertIn(b"Picked by our 2019 model", page.data)
+        self.assertIn(b'href="/recommendations/Test%20Artist/Test%20Song?model=2026"', page.data)
+
+    def test_retrain_page_uses_the_retrained_model_and_links_back(self):
+        retrained = recommendations.MODELS["2026"].dv
+        ranked = [(str(i), 0.5) for i in range(21)]
+        with mock.patch.object(recommendations, "musixmatch", side_effect=musixmatch_found), \
+                spotify_returning(SPOTIFY_RESULT), \
+                mock.patch.object(retrained, "most_similar", return_value=ranked) as most_similar:
+            page = self.client.get("/recommendations/Test Artist/Test Song?model=2026")
+        most_similar.assert_called_once()
+        self.assertEqual(page.data.count(b'<div class="recs">'), 20)
+        self.assertIn(b"Picked by a 2026 retrain", page.data)
+        self.assertIn(b'href="/recommendations/Test%20Artist/Test%20Song"', page.data)
+
+    def test_unknown_model_falls_back_to_2019(self):
+        with mock.patch.object(recommendations, "musixmatch", side_effect=musixmatch_found), \
+                spotify_returning(SPOTIFY_RESULT):
+            page = self.client.get("/recommendations/Test Artist/Test Song?model=1999")
+        self.assertIn(b"Picked by our 2019 model", page.data)
+
+    def test_switching_models_spends_no_api_calls(self):
+        with mock.patch.object(recommendations, "musixmatch", side_effect=musixmatch_found) as api, \
+                spotify_returning(SPOTIFY_RESULT):
+            self.client.get("/recommendations/Test Artist/Test Song")
+            page = self.client.get("/recommendations/Test Artist/Test Song?model=2026")
+        self.assertIn(b"Picked by a 2026 retrain", page.data)
+        self.assertEqual(api.call_count, 2)
+
     def test_unknown_song_shows_whoops(self):
         with mock.patch.object(recommendations, "musixmatch", side_effect=musixmatch_missing):
             page = self.client.get("/recommendations/Nobody/Nothing")

@@ -4,10 +4,10 @@ generate recommendations. This file
 communicates and controls other programs in
 the groover application.
 """
-from flask import render_template, flash, redirect, url_for
+from flask import render_template, flash, redirect, request, url_for
 from application import app
 from application.forms import LoginForm
-from application.recommendations import find_track
+from application.recommendations import DEFAULT_MODEL, MODELS, RETRAINED_MODEL, find_track
 
 @app.route('/', methods=['GET', 'POST'])
 def lookup():
@@ -55,10 +55,16 @@ def recommendations(artist, title):
     the user to the recommendation page or will ask for more input
     if search is unsuccessful.
     """
+    model = request.args.get('model', DEFAULT_MODEL)
+    if model not in MODELS:
+        model = DEFAULT_MODEL
     rec = find_track(artist, title)
     if rec:
-        rec.load_recommendations()
-        return render_template('recommendations.html', title='Your Recommendations', rec=rec)
+        rec.load_recommendations(model)
+        other_model = RETRAINED_MODEL if model == DEFAULT_MODEL else None
+        other_model_url = url_for('recommendations', artist=artist, title=title, model=other_model)
+        return render_template('recommendations.html', title='Your Recommendations', rec=rec,
+                               model=model, other_model_url=other_model_url)
     flash('Whoops, we did not find the track "{}" by {}!'.format(\
     title, artist), category='error')
     return render_template('whoops.html', title='Song Not Found')

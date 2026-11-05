@@ -191,3 +191,12 @@ p #full-overlay-content {
     align-items: center;
     text-decoration: none;
 }
+
+.model-note {
+  white-space: normal;
+  font-size: 14px;
+}
+
+.model-note a {
+  color: white;
+}

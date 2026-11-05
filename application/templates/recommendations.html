@@ -51,6 +51,13 @@
 
       <div class="owl-container container">
         <p><b>Your Recommendations</b></p>
+        <p class="model-note">
+          {% if model == "2019" %}
+            Picked by our 2019 model. <a href="{{ other_model_url }}">See what a 2026 retrain picks</a>
+          {% else %}
+            Picked by a 2026 retrain on the same lyrics. <a href="{{ other_model_url }}">Back to our 2019 model</a>
+          {% endif %}
+        </p>
         <div class="owl-carousel owl-theme">
             {% for song in rec.get_recommendations() %}
                 <div class="recs">
