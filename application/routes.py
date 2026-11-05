@@ -40,6 +40,14 @@ def about():
     """
     return render_template('about.html', title='About')
 
+@app.route('/robots.txt')
+def robots():
+    """
+    keeps crawlers off recommendation pages, since each
+    one spends Musixmatch and Spotify quota
+    """
+    return app.send_static_file('robots.txt')
+
 @app.route('/recommendations/<artist>/<title>')
 def recommendations(artist, title):
     """
