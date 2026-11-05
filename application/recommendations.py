@@ -3,13 +3,22 @@ This file handles the input from routes and generates the
 recommendations using the API calls to musixmatch and spotipy
 """
 import json
-import re
 import os
+import re
+from pathlib import Path
+
 import requests
+import spotipy
 from gensim.models.doc2vec import Doc2Vec
 from nltk.tokenize import word_tokenize
-import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials
+
+DATA_DIR = Path(__file__).resolve().parent.parent / "data"
+
+MODEL = Doc2Vec.load(str(DATA_DIR / "d2v.model"))
+with open(DATA_DIR / "catalog.json") as catalog_file:
+    CATALOG = json.load(catalog_file)
+
 
 # Recommendation Generator
 class Recommendation:
@@ -93,24 +102,19 @@ class Recommendation:
         lyrics = self.get_lyrics().strip().replace('\n', ' ').lower()
         lyrics = re.sub(r"[\(\[].*?[\)\]]", r"", lyrics)
 
-        #Get most similar lysics
-        model = Doc2Vec.load("data/d2v.model") #load model
+        #Get most similar lyrics
         test_data = word_tokenize(lyrics)
-        vector_1 = model.infer_vector(doc_words=test_data, alpha=0.025, \
-        min_alpha=0.001, steps=55)
+        vector_1 = MODEL.infer_vector(test_data, alpha=0.025, min_alpha=0.001, epochs=55)
 
-        list_of_tuples = model.docvecs.most_similar(positive=[vector_1],\
-         topn=20)  #first element of the tuple its index in the song_data list
+        list_of_tuples = MODEL.dv.most_similar(positive=[vector_1], topn=20)
         recommendations = []
 
         #Store generated song recommendations from model
-        with open('data/song_data.json') as json_file:
-            song_data = json.load(json_file)
-            for ranking_tuple in list_of_tuples:
-                song = song_data[int(ranking_tuple[0])]
-                song['genres'] = [g.title() for g in song['genres']]
-                if song['name'] != self.get_song_title():
-                    recommendations.append(song)
+        for ranking_tuple in list_of_tuples:
+            song = dict(CATALOG[int(ranking_tuple[0])])
+            song['genres'] = [g.title() for g in song['genres']]
+            if song['name'] != self.get_song_title():
+                recommendations.append(song)
 
         self.recommendations = recommendations
         return True
