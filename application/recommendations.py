@@ -5,6 +5,7 @@ recommendations using the API calls to musixmatch and spotipy
 import json
 import os
 import re
+from functools import cache
 from pathlib import Path
 
 import requests
@@ -19,6 +20,14 @@ MUSIXMATCH_API = "https://api.musixmatch.com/ws/1.1/"
 MODEL = Doc2Vec.load(str(DATA_DIR / "d2v.model"))
 with open(DATA_DIR / "catalog.json") as catalog_file:
     CATALOG = json.load(catalog_file)
+
+
+@cache
+def spotify_client():
+    credentials = SpotifyClientCredentials(
+        client_id=os.getenv("SPOTIFY_CLIENT_ID"),
+        client_secret=os.getenv("SPOTIFY_CLIENT_SECRET"))
+    return spotipy.Spotify(client_credentials_manager=credentials, requests_timeout=10)
 
 
 def musixmatch(method, **params):
@@ -71,15 +80,9 @@ class Recommendation:
             print('Lyrics not found.')
             return False
 
-        #Access Spotify API
-        client_credentials_manager = SpotifyClientCredentials(\
-        client_id=os.getenv("SPOTIFY_CLIENT_ID"), \
-        client_secret=os.getenv("SPOTIFY_CLIENT_SECRET"))
-        spotify = spotipy.Spotify(client_credentials_manager=client_credentials_manager)
-
         #Get album art and a preview url from Spotify
-        results = spotify.search(q='track:' + self.get_song_title() + \
-        ' artist:' + self.get_artist(), type='track')
+        results = spotify_client().search(q='track:' + self.get_song_title() +
+                                          ' artist:' + self.get_artist(), type='track')
         try:
             track = results['tracks']['items'][0]
             self.album_image_url = track["album"]["images"][1]["url"]
