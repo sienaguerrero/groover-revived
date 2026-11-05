@@ -43,7 +43,7 @@ def about():
 def robots():
     """
     keeps crawlers off recommendation pages, since each
-    one spends Musixmatch and Spotify quota
+    one spends LRCLIB and Spotify requests
     """
     return app.send_static_file('robots.txt')
 

@@ -1,6 +1,6 @@
 """
 This file handles the input from routes and generates the
-recommendations using the API calls to musixmatch and spotipy
+recommendations using the API calls to lrclib and spotipy
 """
 import copy
 import json
@@ -17,7 +17,6 @@ from spotipy.exceptions import SpotifyBaseException
 from spotipy.oauth2 import SpotifyClientCredentials
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
-MUSIXMATCH_API = "https://api.musixmatch.com/ws/1.1/"
 LRCLIB_SEARCH = "https://lrclib.net/api/search"
 USER_AGENT = "Groover 2026 (https://groover.siena.codes)"
 RECOMMENDATION_COUNT = 20
@@ -38,12 +37,6 @@ def spotify_client():
         client_id=os.getenv("SPOTIFY_CLIENT_ID"),
         client_secret=os.getenv("SPOTIFY_CLIENT_SECRET"))
     return spotipy.Spotify(client_credentials_manager=credentials, requests_timeout=10)
-
-
-def musixmatch(method, **params):
-    params["apikey"] = os.getenv("MUSIX_API_KEY")
-    response = requests.get(MUSIXMATCH_API + method, params=params, timeout=10)
-    return response.json()["message"]
 
 
 def lrclib_search(title, artist):
@@ -82,33 +75,23 @@ class Recommendation:
         self.recommendations = None
         self.spotify_url = None
 
-    # Retrieve song info from Musixmatch and Spotify
+    # Retrieve song info from LRCLIB and Spotify
     def find_track_info(self):
         """
-        matches the song on Musixmatch, then loads its lyrics,
-        then finds its album art and link on Spotify if it's set up.
+        finds the song and its lyrics on LRCLIB, then finds
+        its album art and link on Spotify if it's set up.
         """
-        matched = musixmatch("matcher.track.get", q_track=self.get_song_title(),
-                             q_artist=self.get_artist())
-        if matched["header"]["status_code"] != 200:
+        records = lrclib_search(self.get_song_title(), self.get_artist())
+        match = best_match(records, self.get_song_title(), self.get_artist())
+        if match is None:
             print('Track not found.')
             return False
 
-        #Get initial Musixmatch information
-        track = matched["body"]["track"]
-        self.artist = track["artist_name"]
-        self.title = track["track_name"]
-        self.track_id = track["track_id"]
-
-        #Make another API call for the lyrics
-        lyrical = musixmatch("track.lyrics.get", track_id=self.get_track_id())
-        if lyrical["header"]["status_code"] != 200:
-            print('Lyrics not found.')
-            return False
-        self.lyrics = lyrical["body"]["lyrics"]["lyrics_body"].split("...")[0]
-        if not self.lyrics.strip():
-            print('Lyrics not found.')
-            return False
+        #Get the song's name and lyrics from LRCLIB
+        self.artist = match["artistName"]
+        self.title = match["trackName"]
+        self.track_id = match["id"]
+        self.lyrics = match["plainLyrics"]
 
         #Get album art and a preview url from Spotify
         if not (os.getenv("SPOTIFY_CLIENT_ID") and os.getenv("SPOTIFY_CLIENT_SECRET")):
@@ -177,7 +160,7 @@ class Recommendation:
         """
         helper function to return track id so
         we could find it using the API for
-        spotify and musixmatch
+        spotify and lrclib
         """
         return self.track_id
 
