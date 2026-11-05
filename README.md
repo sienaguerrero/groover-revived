@@ -8,8 +8,10 @@ Type a song and its artist. Groover gets the lyrics from Musixmatch, turns them 
 
 - `application/`: the Flask app. `recommendations.py` calls Musixmatch and Spotify and ranks songs with the model.
 - `data/d2v.model`: the 2019 model, converted to gensim 4's format.
-- `data/catalog.json`: name, artist, genres, album art, preview, and Spotify ID for each song, in the model's order. The 2019 lyrics are left out.
-- `scripts/convert_2019_model.py`: makes both data files from the 2019 originals.
+- `data/d2v-retrain.model`: the same lyrics retrained in 2026 with a standard learning-rate schedule.
+- `data/catalog.json`: name, artist, genres, album art, preview, and Spotify ID for each song, in the models' order. The 2019 lyrics are left out.
+- `scripts/convert_2019_model.py`: makes `d2v.model` and `catalog.json` from the 2019 originals.
+- `scripts/train_model.py`: makes `d2v-retrain.model` from the 2019 lyrics.
 - `tests/`: unit tests. They stub Musixmatch and Spotify, so they need no keys.
 - `deploy/`: the systemd unit, the Caddy site, and the droplet setup steps.
 
@@ -72,6 +74,8 @@ The 2019 model was saved by gensim 3, and gensim 4 cannot load it directly. `scr
 gensim 3 stores a word's "always keep" downsampling threshold as `2**32`, and gensim 4's upgrade code casts it to a 32-bit integer, where it wraps to 0. Left alone, that makes search drop 97,478 of the 97,547 words every time. The script caps the threshold at `2**32 - 1` first. With that fix, 152 of 200 sampled catalog songs come back as their own top match when searched with their full lyrics, and 190 land in their own top 20.
 
 Each song in the catalog keeps the album art, preview, and Spotify link that Spotify returned in 2019.
+
+The results page also links to the same search run through a retrained model, at `?model=2026`. It uses the same lyrics, song order, 20 dimensions, and 5-word window as 2019, trained in one call so the learning rate slides from 0.025 to 0.0001 across 40 passes. The 2019 loop called training 50 times, and after the first call it held the rate at 0.0152 or higher. Searched with the first 30% of their lyrics, which is what Musixmatch's free tier returns, 87 of the 200 sampled songs come back first from the retrain, against 53 from the 2019 model. Switching models reuses the song's lyrics and art, so it spends no extra API calls.
 
 ## History
 

@@ -126,7 +126,7 @@ systemctl status groover --no-pager
 journalctl -u groover -n 50 --no-pager
 ```
 
-The app holds about 290 MB once loaded, so check that bondi still has room:
+The app holds about 300 MB once both models are loaded, so check that bondi still has room:
 
 ```bash
 free -m
