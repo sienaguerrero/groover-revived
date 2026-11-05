@@ -14,10 +14,17 @@ from nltk.tokenize import word_tokenize
 from spotipy.oauth2 import SpotifyClientCredentials
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
+MUSIXMATCH_API = "https://api.musixmatch.com/ws/1.1/"
 
 MODEL = Doc2Vec.load(str(DATA_DIR / "d2v.model"))
 with open(DATA_DIR / "catalog.json") as catalog_file:
     CATALOG = json.load(catalog_file)
+
+
+def musixmatch(method, **params):
+    params["apikey"] = os.getenv("MUSIX_API_KEY")
+    response = requests.get(MUSIXMATCH_API + method, params=params, timeout=10)
+    return response.json()["message"]
 
 
 # Recommendation Generator
@@ -36,59 +43,47 @@ class Recommendation:
         self.recommendations = None
         self.spotify_url = None
 
-    # Retrieve URL for song on Musixmatch
-    def get_musixmatch_api_url(self, url):
-        """
-        this method will build the url to grab the json from
-        musixmatch, which we will use for the lyrics and song
-        information. Uses the MusixMatch API key.
-        """
-        return 'http://api.musixmatch.com/ws/1.1/{}&format=json&apikey={}'.format(url, \
-        os.getenv("MUSIX_API_KEY"))
     # Retrieve song info from Musixmatch and Spotify
     def find_track_info(self):
         """
-        uses the url from get_musixmatch_api_url to load the json file into matched
-        data, so we could use it later.
+        matches the song on Musixmatch, then loads its lyrics,
+        then finds its album art and link on Spotify.
         """
-        url = 'matcher.track.get?q_track={}&q_artist={}'.format(self.get_song_title(), \
-        self.get_artist())
-        matched_res = requests.get(self.get_musixmatch_api_url(url))
-        matched_data = json.loads(matched_res.text)
+        matched = musixmatch("matcher.track.get", q_track=self.get_song_title(),
+                             q_artist=self.get_artist())
+        if matched["header"]["status_code"] != 200:
+            print('Track not found.')
+            return False
 
-        if matched_data["message"]["header"]["status_code"] == 200:
-            #Get initial Musixmatch information
-            self.artist = matched_data["message"]["body"]["track"]["artist_name"]
-            self.title = matched_data["message"]["body"]["track"]["track_name"]
-            self.track_id = matched_data["message"]["body"]["track"]["track_id"]
+        #Get initial Musixmatch information
+        track = matched["body"]["track"]
+        self.artist = track["artist_name"]
+        self.title = track["track_name"]
+        self.track_id = track["track_id"]
 
-            #Make another API call for the lyrics
-            url = 'track.lyrics.get?track_id={}'.format(self.get_track_id())
-            lyrical_res = requests.get(self.get_musixmatch_api_url(url))
-            lyrical_data = json.loads(lyrical_res.text)
-            self.lyrics = lyrical_data["message"]["body"]["lyrics"]["lyrics_body"].split("...")[0]
+        #Make another API call for the lyrics
+        lyrical = musixmatch("track.lyrics.get", track_id=self.get_track_id())
+        self.lyrics = lyrical["body"]["lyrics"]["lyrics_body"].split("...")[0]
 
-            #Access Spotify API
-            client_credentials_manager = SpotifyClientCredentials(\
-            client_id=os.getenv("SPOTIFY_CLIENT_ID"), \
-            client_secret=os.getenv("SPOTIFY_CLIENT_SECRET"))
-            spotify = spotipy.Spotify(client_credentials_manager=client_credentials_manager)
+        #Access Spotify API
+        client_credentials_manager = SpotifyClientCredentials(\
+        client_id=os.getenv("SPOTIFY_CLIENT_ID"), \
+        client_secret=os.getenv("SPOTIFY_CLIENT_SECRET"))
+        spotify = spotipy.Spotify(client_credentials_manager=client_credentials_manager)
 
-            #Get album art and a preview url from Spotify
-            results = spotify.search(q='track:' + self.get_song_title() + \
-            ' artist:' + self.get_artist(), type='track')
-            try:
-                track = results['tracks']['items'][0]
-                self.album_image_url = track["album"]["images"][1]["url"]
-                self.preview_url = track["preview_url"]
-                self.spotify_url = track['external_urls']['spotify']
+        #Get album art and a preview url from Spotify
+        results = spotify.search(q='track:' + self.get_song_title() + \
+        ' artist:' + self.get_artist(), type='track')
+        try:
+            track = results['tracks']['items'][0]
+            self.album_image_url = track["album"]["images"][1]["url"]
+            self.preview_url = track["preview_url"]
+            self.spotify_url = track['external_urls']['spotify']
 
-                return True
-            except:
-                print('Track not found.')
-                return False
-        print('Track not found.')
-        return False
+            return True
+        except:
+            print('Track not found.')
+            return False
 
 
     # Determine song recommendations using model
