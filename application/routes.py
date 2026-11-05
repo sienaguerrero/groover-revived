@@ -23,9 +23,9 @@ def lookup():
             flash('Whoops! Please omit special characters.', category='error')
             return render_template('whoops.html', title='error')
         artist = str(form.artist.data)
-        artist=artist.replace('#','')
+        artist=artist.replace('#','').replace('/',' ')
         title = str(form.title.data)
-        title=title.replace('#','')
+        title=title.replace('#','').replace('/',' ')
         return redirect(url_for('recommendations', artist=artist, title=title))
     if (form.artist.data and not form.title.data) or (not form.artist.data and form.title.data):
         flash('Whoops! Please enter both the song name and artist.', category='error')
