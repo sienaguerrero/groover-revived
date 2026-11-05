@@ -54,6 +54,10 @@ class LoadRecommendationsTest(unittest.TestCase):
         self.assertEqual(len(names), 20)
         self.assertNotIn(title, names)
 
+    def test_model_drops_no_word_every_time(self):
+        sample_int = recommendations.MODEL.wv.expandos["sample_int"]
+        self.assertEqual(int((sample_int == 0).sum()), 0)
+
     def test_does_not_change_the_catalog(self):
         before = [dict(song) for song in recommendations.CATALOG[:50]]
         rec = recommendations.Recommendation("Test Artist", "Test Song")
