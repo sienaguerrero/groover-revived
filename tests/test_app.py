@@ -72,6 +72,42 @@ class LoadRecommendationsTest(unittest.TestCase):
         self.assertEqual(recommendations.CATALOG[:50], before)
 
 
+class LrclibTest(unittest.TestCase):
+    def test_search_sends_the_title_artist_and_user_agent(self):
+        response = mock.Mock(status_code=200)
+        response.json.return_value = [{"id": 1}]
+        with mock.patch.object(recommendations.requests, "get", return_value=response) as get:
+            self.assertEqual(recommendations.lrclib_search("The Boxer", "Simon & Garfunkel"), [{"id": 1}])
+        self.assertEqual(get.call_args.args, ("https://lrclib.net/api/search",))
+        self.assertEqual(get.call_args.kwargs["params"], {"track_name": "The Boxer", "artist_name": "Simon & Garfunkel"})
+        self.assertIn("Groover", get.call_args.kwargs["headers"]["User-Agent"])
+
+    def test_search_returns_nothing_when_lrclib_errors(self):
+        with mock.patch.object(recommendations.requests, "get", return_value=mock.Mock(status_code=429)):
+            self.assertEqual(recommendations.lrclib_search("a", "b"), [])
+
+    def test_match_prefers_the_same_title_with_lyrics(self):
+        records = [
+            {"trackName": "Abba - Dancing Queen", "artistName": "ABBA", "plainLyrics": "words"},
+            {"trackName": "Dancing Queen", "artistName": "ABBA", "plainLyrics": None},
+            {"trackName": "dancing queen", "artistName": "Abba Tribute", "plainLyrics": "words"},
+        ]
+        self.assertIs(recommendations.best_match(records, "Dancing Queen", "ABBA"), records[2])
+
+    def test_match_prefers_the_same_artist_ignoring_punctuation(self):
+        records = [
+            {"trackName": "Back In Black", "artistName": "AC/DC, AC/DC", "plainLyrics": "words"},
+            {"trackName": "Back in Black", "artistName": "AC/DC", "plainLyrics": "words"},
+        ]
+        self.assertIs(recommendations.best_match(records, "back in black", "AC DC"), records[1])
+
+    def test_match_falls_back_to_any_record_with_lyrics(self):
+        records = [{"trackName": "Instrumental", "artistName": "X", "plainLyrics": None},
+                   {"trackName": "Close", "artistName": "Y", "plainLyrics": "words"}]
+        self.assertIs(recommendations.best_match(records, "Something Else", "Z"), records[1])
+        self.assertIsNone(recommendations.best_match([], "Anything", "Anyone"))
+
+
 class FindTrackInfoTest(unittest.TestCase):
     def test_keeps_the_lyrics_before_the_free_tier_cutoff(self):
         with mock.patch.object(recommendations, "musixmatch", side_effect=musixmatch_found), \

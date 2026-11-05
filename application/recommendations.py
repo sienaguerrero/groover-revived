@@ -18,6 +18,8 @@ from spotipy.oauth2 import SpotifyClientCredentials
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 MUSIXMATCH_API = "https://api.musixmatch.com/ws/1.1/"
+LRCLIB_SEARCH = "https://lrclib.net/api/search"
+USER_AGENT = "Groover 2026 (https://groover.siena.codes)"
 RECOMMENDATION_COUNT = 20
 DEFAULT_MODEL = "2019"
 RETRAINED_MODEL = "2026"
@@ -42,6 +44,26 @@ def musixmatch(method, **params):
     params["apikey"] = os.getenv("MUSIX_API_KEY")
     response = requests.get(MUSIXMATCH_API + method, params=params, timeout=10)
     return response.json()["message"]
+
+
+def lrclib_search(title, artist):
+    response = requests.get(LRCLIB_SEARCH, params={"track_name": title, "artist_name": artist},
+                            headers={"User-Agent": USER_AGENT}, timeout=10)
+    if response.status_code != 200:
+        print('LRCLIB search failed:', response.status_code)
+        return []
+    return response.json()
+
+
+def match_key(text):
+    return re.sub(r"[^0-9a-z]", "", text.casefold())
+
+
+def best_match(records, title, artist):
+    with_lyrics = [record for record in records if record.get("plainLyrics")]
+    same_title = [record for record in with_lyrics if match_key(record["trackName"]) == match_key(title)]
+    same_both = [record for record in same_title if match_key(record["artistName"]) == match_key(artist)]
+    return (same_both or same_title or with_lyrics or [None])[0]
 
 
 # Recommendation Generator
