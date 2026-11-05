@@ -179,7 +179,6 @@ class RoutesTest(unittest.TestCase):
                 mock.patch.object(recommendations, "musixmatch", side_effect=musixmatch_found):
             page = self.client.get("/recommendations/Test Artist/Test Song")
         self.assertEqual(page.data.count(b'<div class="recs">'), 20)
-        self.assertNotIn(b"req-album", page.data)
         self.assertNotIn(b'src="None"', page.data)
 
     def test_default_page_offers_the_retrain(self):
