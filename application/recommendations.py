@@ -63,7 +63,13 @@ class Recommendation:
 
         #Make another API call for the lyrics
         lyrical = musixmatch("track.lyrics.get", track_id=self.get_track_id())
+        if lyrical["header"]["status_code"] != 200:
+            print('Lyrics not found.')
+            return False
         self.lyrics = lyrical["body"]["lyrics"]["lyrics_body"].split("...")[0]
+        if not self.lyrics.strip():
+            print('Lyrics not found.')
+            return False
 
         #Access Spotify API
         client_credentials_manager = SpotifyClientCredentials(\
