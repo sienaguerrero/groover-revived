@@ -8,7 +8,6 @@ from flask import render_template, flash, redirect, url_for
 from application import app
 from application.forms import LoginForm
 from application.recommendations import Recommendation
-# from markupsafe import Markup, escape
 
 @app.route('/', methods=['GET', 'POST'])
 def lookup():
