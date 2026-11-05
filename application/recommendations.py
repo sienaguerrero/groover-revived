@@ -17,8 +17,11 @@ from spotipy.oauth2 import SpotifyClientCredentials
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 MUSIXMATCH_API = "https://api.musixmatch.com/ws/1.1/"
 RECOMMENDATION_COUNT = 20
+DEFAULT_MODEL = "2019"
 
-MODEL = Doc2Vec.load(str(DATA_DIR / "d2v.model"))
+MODELS = {
+    "2019": Doc2Vec.load(str(DATA_DIR / "d2v.model")),
+}
 with open(DATA_DIR / "catalog.json") as catalog_file:
     CATALOG = json.load(catalog_file)
 
@@ -98,7 +101,7 @@ class Recommendation:
 
 
     # Determine song recommendations using model
-    def load_recommendations(self):
+    def load_recommendations(self, model_name=DEFAULT_MODEL):
         """
         clean the input so it works with our model (lowercase, etc)
         use doc to vec which returns indices in the database that
@@ -109,10 +112,11 @@ class Recommendation:
         lyrics = re.sub(r"[\(\[].*?[\)\]]", r"", lyrics)
 
         #Get most similar lyrics
+        model = MODELS[model_name]
         test_data = word_tokenize(lyrics)
-        vector_1 = MODEL.infer_vector(test_data, alpha=0.025, min_alpha=0.001, epochs=55)
+        vector_1 = model.infer_vector(test_data, alpha=0.025, min_alpha=0.001, epochs=55)
 
-        list_of_tuples = MODEL.dv.most_similar(positive=[vector_1],
+        list_of_tuples = model.dv.most_similar(positive=[vector_1],
                                                topn=RECOMMENDATION_COUNT + 1)
         recommendations = []
 

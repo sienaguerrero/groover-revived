@@ -48,15 +48,16 @@ class LoadRecommendationsTest(unittest.TestCase):
         ranked = [("0", 0.99)] + [(str(i), 0.5) for i in range(1, 25)]
         rec = recommendations.Recommendation("Someone", title)
         rec.lyrics = LYRICS
-        with mock.patch.object(recommendations.MODEL.dv, "most_similar", return_value=ranked):
+        with mock.patch.object(recommendations.MODELS["2019"].dv, "most_similar", return_value=ranked):
             rec.load_recommendations()
         names = [song["name"] for song in rec.get_recommendations()]
         self.assertEqual(len(names), 20)
         self.assertNotIn(title, names)
 
-    def test_model_drops_no_word_every_time(self):
-        sample_int = recommendations.MODEL.wv.expandos["sample_int"]
-        self.assertEqual(int((sample_int == 0).sum()), 0)
+    def test_models_drop_no_word_every_time(self):
+        for name, model in recommendations.MODELS.items():
+            with self.subTest(model=name):
+                self.assertEqual(int((model.wv.expandos["sample_int"] == 0).sum()), 0)
 
     def test_does_not_change_the_catalog(self):
         before = [dict(song) for song in recommendations.CATALOG[:50]]
