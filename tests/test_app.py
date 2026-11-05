@@ -96,6 +96,26 @@ class FindTrackInfoTest(unittest.TestCase):
         self.assertEqual(params["apikey"], "test-key")
 
 
+class FindTrackTest(unittest.TestCase):
+    def setUp(self):
+        recommendations.lookup_track.cache_clear()
+
+    def test_reuses_a_track_it_already_found(self):
+        with mock.patch.object(recommendations, "musixmatch", side_effect=musixmatch_found) as api, \
+                spotify_returning(SPOTIFY_RESULT):
+            first = recommendations.find_track("Test Artist", "Test Song")
+            second = recommendations.find_track("Test Artist", "Test Song")
+        self.assertEqual(api.call_count, 2)
+        self.assertIsNot(first, second)
+        self.assertEqual(second.get_lyrics(), LYRICS)
+
+    def test_looks_again_for_a_track_it_did_not_find(self):
+        with mock.patch.object(recommendations, "musixmatch", side_effect=musixmatch_missing) as api:
+            self.assertIsNone(recommendations.find_track("Nobody", "Nothing"))
+            self.assertIsNone(recommendations.find_track("Nobody", "Nothing"))
+        self.assertEqual(api.call_count, 2)
+
+
 class RoutesTest(unittest.TestCase):
     def setUp(self):
         app.config["WTF_CSRF_ENABLED"] = False

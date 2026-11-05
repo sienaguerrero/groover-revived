@@ -2,10 +2,11 @@
 This file handles the input from routes and generates the
 recommendations using the API calls to musixmatch and spotipy
 """
+import copy
 import json
 import os
 import re
-from functools import cache
+from functools import cache, lru_cache
 from pathlib import Path
 
 import requests
@@ -186,3 +187,19 @@ class Recommendation:
         model
         """
         return self.recommendations
+
+
+# Raising instead of returning None keeps failures, like a spent daily quota, out of the cache.
+@lru_cache(maxsize=256)
+def lookup_track(artist, title):
+    rec = Recommendation(artist, title)
+    if not rec.find_track_info():
+        raise LookupError(f"{title} by {artist} not found")
+    return rec
+
+
+def find_track(artist, title):
+    try:
+        return copy.copy(lookup_track(artist, title))
+    except LookupError:
+        return None
